@@ -1,9 +1,12 @@
-﻿using ConfigValidationExample.Models.Configuration;
+﻿using System;
+using System.IO;
+using ConfigValidationExample.Models.Configuration;
 using ConfigValidationExample.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ConfigValidationExample
 {
@@ -16,9 +19,11 @@ namespace ConfigValidationExample
       {
          // Register the configuration here.
          var builder = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json");
-
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", false, true);
          Configuration = builder.Build();
+
+         services.Configure<Settings>(Configuration);
 
          // Register the classes needed for the configuration validation
          services.AddTransient<IModelValidator, ModelValidator>();
@@ -47,6 +52,14 @@ namespace ConfigValidationExample
             routes.MapRoute(
                    name: "default",
                    template: "{controller=Home}/{action=Index}/{id?}");
+         });
+
+         var monitor = app.ApplicationServices.GetService<IOptionsMonitor<Settings>>();
+         var validatedSettings = app.ApplicationServices.GetService<IValidatedSettings<Settings>>();
+         monitor.OnChange(settings =>
+         {
+            // Make sure that every time when the settings file changes, it will be validated.
+            validatedSettings.GetValidatedSettings(true);
          });
       }
    }

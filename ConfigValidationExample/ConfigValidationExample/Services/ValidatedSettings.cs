@@ -3,20 +3,21 @@ using System.Linq;
 using System.Text;
 using ConfigValidationExample.Attributes;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace ConfigValidationExample.Services
 {
    internal class ValidatedSettings<TSettings> : IValidatedSettings<TSettings> where TSettings : class, new()
    {
       private static TSettings _settings;
-      private readonly IConfiguration _configuration;
+      private readonly IOptionsMonitor<TSettings> _options;
       private readonly IModelValidator _modelValidator;
 
       public ValidatedSettings(
-         IConfiguration configuration,
+         IOptionsMonitor<TSettings> options,
          IModelValidator modelValidator)
       {
-         _configuration = configuration;
+         _options = options;
          _modelValidator = modelValidator;
       }
 
@@ -24,7 +25,7 @@ namespace ConfigValidationExample.Services
       {
          if (_settings == null || forceValidate)
          {
-            var settings = _configuration.Get<TSettings>();
+            var settings = _options.CurrentValue;
             var validationResults = _modelValidator.ValidateModel(settings).ToArray();
             if (validationResults.Any())
             {
